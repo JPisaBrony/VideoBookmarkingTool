@@ -13,45 +13,32 @@
 
 (function() {
     'use strict';
-    document.body.addEventListener("yt-navigate-finish", function() {
-        var endpoint = "";
-        var url = window.location.href;
-        var videoID = url.split("v=")[1];
-        if(videoID != null) {
-            videoID = videoID.substring(0, 11);
-        }
-        var mobile = false;
-        var bookmarked = false;
-        if(url[8] == 'm') {
-            mobile = true;
-        }
+    var endpoint = "";
+    var mobile = false;
+    var bookmarked = false;
+    var videoID = null;
+    var oldURL = "";
 
-        var makeSureButtonExists = () => {
-            let jpButton = document.getElementById('jp_button');
-            if(!jpButton) {
-                setTimeout(checkExists, 1000);
-            }
+    var createButton = (element) => {
+        let videoTitle = "title";
+        if(mobile) {
+            let yt = element.querySelectorAll("span");
+            videoTitle = yt[0].innerHTML;
+        } else {
+            let yt = element.querySelectorAll("yt-formatted-string");
+            videoTitle = yt[0].innerHTML;
         }
-
-        var createButton = (element, isMobile) => {
-            let videoTitle = "title";
-            if(isMobile) {
-                let yt = element.querySelectorAll("span");
-                videoTitle = yt[0].innerHTML;
-            } else {
-                let yt = element.querySelectorAll("yt-formatted-string");
-                videoTitle = yt[0].innerHTML;
-            }
-            var button = document.createElement('button');
-            button.id = 'jp_button';
-            button.innerText = 'bookmark';
-            if(bookmarked) {
-                button.style = 'background-color: green; color: white; margin-left: 10px';
-            } else {
-                button.style = 'background-color: red; color: white; margin-left: 10px';
-            }
-            button.onclick = () => {
-                let updateReq = endpoint + "update";
+        var button = document.createElement('button');
+        button.id = 'jp_button';
+        button.innerText = 'bookmark';
+        if(bookmarked) {
+            button.style = 'background-color: green; color: white; margin-left: 10px';
+        } else {
+            button.style = 'background-color: red; color: white; margin-left: 10px';
+        }
+        button.onclick = () => {
+            let updateReq = endpoint + "update";
+            if(videoID != null) {
                 GM_xmlhttpRequest({
                     method: "POST",
                     url: updateReq,
@@ -63,47 +50,42 @@
                         button.style = 'background-color: green; color: white; margin-left: 10px';
                     }
                 });
-            };
-            element.append(button);
-            setTimeout(makeSureButtonExists, 1000);
-        }
-
-        var checkForTitleMobile = (element) => {
-            if(element.classList.contains('slim-video-information-title') && element.classList.contains('slim-video-metadata-title-modern')) {
-                createButton(element, true);
-                return true;
             }
-        }
+        };
+        element.append(button);
+    }
 
-        var checkForTitle = (element) => {
-            if(element.classList.contains('style-scope') && element.classList.contains('ytd-watch-metadata')) {
-                createButton(element, false);
-                return true;
-            }
-        }
-
-        var checkExists = () => {
-            let rerun = true;
-            if(mobile) {
-                let h2 = document.querySelectorAll("h2");
-                for(let i = 0; i < h2.length; i++) {
-                    if(checkForTitleMobile(h2[i])) {
-                        rerun = false;
-                    }
-                }
-            } else {
-                let h1 = document.querySelectorAll("h1");
-                for(let i = 0; i < h1.length; i++) {
-                    if(checkForTitle(h1[i])) {
-                        rerun = false;
-                    }
+    var findTitleOnPage = () => {
+        if(mobile) {
+            let h2 = document.querySelectorAll("h2");
+            for(let i = 0; i < h2.length; i++) {
+                let element = h2[i];
+                if(element.classList.contains('slim-video-information-title') && element.classList.contains('slim-video-metadata-title-modern')) {
+                    createButton(element);
+                    break;
                 }
             }
-            if(rerun) {
-                setTimeout(checkExists, 1000);
+        } else {
+            let h1 = document.querySelectorAll("h1");
+            for(let i = 0; i < h1.length; i++) {
+                let element = h1[i];
+                if(element.classList.contains('style-scope') && element.classList.contains('ytd-watch-metadata')) {
+                    createButton(element);
+                    break;
+                }
             }
         }
+    }
 
+    var getBookmarkedState = () => {
+        let url = window.location.href;
+        videoID = url.split("v=")[1];
+        if(videoID != null) {
+            videoID = videoID.substring(0, 11);
+        }
+        if(url[8] == 'm') {
+            mobile = true;
+        }
         if(videoID != null) {
             var getReq = endpoint + "find/" + videoID;
             GM_xmlhttpRequest({
@@ -116,10 +98,32 @@
                         if(json.saved != false && json.saved != "") {
                             bookmarked = true;
                         }
-                        makeSureButtonExists();
+                        findTitleOnPage();
                     }
                 }
             });
         }
-    });
+    }
+
+    var checkForURLUpdates = () => {
+        let url = window.location.href;
+        if(url != oldURL) {
+            oldURL = url;
+            bookmarked = false;
+            let jpButton = document.getElementById('jp_button');
+            if(jpButton) {
+                jpButton.remove();
+            }
+        }
+    }
+
+    var checkForButtonOnPage = () => {
+        let jpButton = document.getElementById('jp_button');
+        if(!jpButton) {
+            getBookmarkedState();
+        }
+    }
+
+    setInterval(checkForURLUpdates, 1000);
+    setInterval(checkForButtonOnPage, 1000);
 })();
