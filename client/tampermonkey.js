@@ -78,6 +78,7 @@
     }
 
     var getBookmarkedState = () => {
+        bookmarked = false;
         let url = window.location.href;
         videoID = url.split("v=")[1];
         if(videoID != null) {
@@ -95,25 +96,14 @@
                 onload: function(resp) {
                     let json = resp.response;
                     if(json != null) {
-                        if(json.saved != false && json.saved != "") {
+                        if(json.saved != false && json.saved == videoID) {
                             bookmarked = true;
                         }
                         findTitleOnPage();
+                        setTimeout(checkForButtonOnPage, 1000);
                     }
                 }
             });
-        }
-    }
-
-    var checkForURLUpdates = () => {
-        let url = window.location.href;
-        if(url != oldURL) {
-            oldURL = url;
-            bookmarked = false;
-            let jpButton = document.getElementById('jp_button');
-            if(jpButton) {
-                jpButton.remove();
-            }
         }
     }
 
@@ -124,6 +114,17 @@
         }
     }
 
+    var checkForURLUpdates = () => {
+        let url = window.location.href;
+        if(url != oldURL) {
+            oldURL = url;
+            let jpButton = document.getElementById('jp_button');
+            if(jpButton) {
+                jpButton.remove();
+            }
+            checkForButtonOnPage();
+        }
+    }
+
     setInterval(checkForURLUpdates, 1000);
-    setInterval(checkForButtonOnPage, 1000);
 })();
