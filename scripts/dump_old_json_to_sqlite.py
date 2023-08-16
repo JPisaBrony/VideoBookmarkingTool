@@ -1,4 +1,4 @@
-import sqlite3
+import pysqlite3 as sqlite3
 import json
 
 con = sqlite3.connect("json.db")

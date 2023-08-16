@@ -1,5 +1,5 @@
 from flask import Flask, request
-import sqlite3
+import pysqlite3 as sqlite3
 import json
 import os
 
