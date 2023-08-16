@@ -39,7 +39,10 @@ def find_video(id):
         res = con.execute("SELECT video_id FROM bookmarked_videos WHERE video_id = ?", (id,))
         video_id = res.fetchone()
         con.close()
-        return {"saved": video_id[0]}
+        if video_id == None:
+            return {"saved": ""}
+        else:
+            return {"saved": video_id[0]}
     except Exception as e:
         print(e)
         return {"failed": -1}
