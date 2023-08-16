@@ -1,47 +1,45 @@
 from flask import Flask, request
+import sqlite3
 import json
 import os
 
+database_name = "videos.db"
+# create database
+db = sqlite3.connect(database_name)
+db.execute("CREATE TABLE IF NOT EXISTS bookmarked_videos(id INTEGER PRIMARY KEY, video_id TEXT UNIQUE, title TEXT, timestamp INTEGER)")
+db.commit()
+db.close()
+# setup flask app
 app = Flask(__name__)
-filename = 'videos.json'
 
 @app.route("/")
 def hello_world():
     return "<p>video server is running</p>"
 
-video_list = {
-    "saved": {},
-    "watching": {}
-}
-if os.path.isfile(filename):
-    with open(filename) as f:
-        video_list = json.load(f)
-
-def save_json_file():
-    with open(filename, 'w') as f:
-        json.dump(video_list, f)
-
-@app.route("/add/<string:id>", methods = ['POST'])
-def add_video(id):
-    video_list["saved"][id] = 0
-    save_json_file()
-    return {"saved": id}
-
 @app.route("/update", methods = ['POST'])
 def update_video():
     json = request.json
     if "id" in json and "title" in json:
-        video_list["saved"][json["id"]] = json["title"]
-        save_json_file()
-        return {json["id"]: json["title"]}
+        try:
+            con = sqlite3.connect(database_name)
+            con.execute("INSERT INTO bookmarked_videos (video_id, title, timestamp) VALUES (?, ?, unixepoch()) ON CONFLICT(video_id) DO UPDATE SET title = excluded.title, timestamp = excluded.timestamp", (json["id"], json["title"]))
+            con.commit()
+            con.close()
+            return {json["id"]: json["title"]}
+        except Exception as e:
+            print(e)
+            print(json)
+            return {"failed": -1}
     return {"failed": -1}
 
 @app.route("/find/<string:id>")
 def find_video(id):
-    if id in video_list["saved"]:
-        return {"saved": id}
-    return {"saved": ""}
-
-@app.route("/videos")
-def list_videos():
-    return video_list
+    try:
+        con = sqlite3.connect(database_name)
+        res = con.execute("SELECT video_id FROM bookmarked_videos WHERE video_id = ?", (id,))
+        video_id = res.fetchone()
+        con.close()
+        return {"saved": video_id[0]}
+    except Exception as e:
+        print(e)
+        return {"failed": -1}
