@@ -20,14 +20,6 @@
     var oldURL = "";
 
     var createButton = (element) => {
-        let videoTitle = "title";
-        if(mobile) {
-            let yt = element.querySelectorAll("span");
-            videoTitle = yt[0].innerHTML;
-        } else {
-            let yt = element.querySelectorAll("yt-formatted-string");
-            videoTitle = yt[0].innerHTML;
-        }
         var button = document.createElement('button');
         button.id = 'jp_button';
         button.innerText = 'bookmark';
@@ -36,7 +28,16 @@
         } else {
             button.style = 'background-color: red; color: white; margin-left: 10px';
         }
-        button.onclick = () => {
+        button.onclick = (e) => {
+            e.stopPropagation();
+            let videoTitle = "title";
+            if(mobile) {
+                let yt = element.querySelectorAll("span");
+                videoTitle = yt[0].innerHTML;
+            } else {
+                let yt = element.querySelectorAll("yt-formatted-string");
+                videoTitle = yt[0].innerHTML;
+            }
             let updateReq = endpoint + "update";
             if(videoID != null) {
                 GM_xmlhttpRequest({
