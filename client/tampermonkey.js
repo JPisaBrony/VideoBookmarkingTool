@@ -33,10 +33,10 @@
             let videoTitle = "title";
             if(mobile) {
                 let yt = element.querySelectorAll("span");
-                videoTitle = yt[0].innerHTML;
+                videoTitle = yt[0].innerText;
             } else {
                 let yt = element.querySelectorAll("yt-formatted-string");
-                videoTitle = yt[0].innerHTML;
+                videoTitle = yt[0].innerText;
             }
             let updateReq = endpoint + "update";
             if(videoID != null) {
