@@ -1,0 +1,63 @@
+<!doctype html>
+<p>Backlog Page</p>
+<script>
+    var url = "http://localhost:8080";
+
+    function create_button(id) {
+        return function() {
+            fetch(url + "/backlog/" + id, {
+                method: "DELETE",
+                headers: {
+                    "API-Key": decodeURIComponent(document.cookie)
+                }
+            });
+        }
+    }
+
+    function check_api() {
+        var cookie = decodeURIComponent(document.cookie);
+        if(cookie) {
+            var promise = fetch(url + "/backlog", {
+                headers: {
+                    "API-Key": cookie
+                }
+            });
+            promise.then(resp => {
+                return resp.json();
+            }).then(data => {
+                console.log(data);
+                var list = document.createElement("ul");
+                for(var i = 0; i < data.length; i++) {
+                    var id = data[i][2];
+                    var text = data[i][1];
+                    var li = document.createElement("li");
+                    var a = document.createElement("a");
+                    a.target="_blank";
+                    a.href = "https://www.youtube.com/watch?v=" + id;
+                    a.text = text;
+                    li.append(a);
+                    var button = document.createElement("button");
+                    button.innerHTML = "x";
+                    button.style = "margin-left: 10px";
+                    button.onclick = create_button(id);
+                    li.append(button);
+                    list.append(li);
+                }
+                document.getElementById("backlog").append(list);
+            });
+        }
+    }
+
+    function submit() {
+        document.cookie = document.getElementById("api-key").value;
+        check_api();
+    }
+</script>
+<body onload="check_api()">
+    <p>Login Page</p>
+    <label>API Key</label>
+    <input id="api-key" type="text">
+    <button type="button" onclick="submit()">Submit</button>
+    <div>Videos</div>
+    <div id="backlog"></div>
+</body>

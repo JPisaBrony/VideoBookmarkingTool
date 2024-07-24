@@ -1,9 +1,11 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify, render_template
 import pysqlite3 as sqlite3
+from functools import wraps
 import json
 import os
 
 database_name = "videos.db"
+api_key = "API_KEY"
 # create database
 db = sqlite3.connect(database_name)
 db.execute("CREATE TABLE IF NOT EXISTS bookmarked_videos(id INTEGER PRIMARY KEY, video_id TEXT UNIQUE, title TEXT, timestamp INTEGER)")
@@ -13,11 +15,23 @@ db.close()
 # setup flask app
 app = Flask(__name__)
 
+# basic api authentication implementation
+def api_auth_required(func):
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        req_key = request.headers.get('API-Key')
+        if req_key != api_key:
+            return jsonify({'error': 'unauthorized'}), 401
+        return func(*args, **kwargs)
+    return decorator
+
+# setup routes
 @app.route("/")
 def default_route():
     return "<p>video server is running</p>"
 
 @app.route("/update", methods = ['POST'])
+@api_auth_required
 def update_video():
     json = request.json
     if "id" in json and "title" in json:
@@ -34,6 +48,7 @@ def update_video():
     return {"failed": -1}
 
 @app.route("/find/<string:id>")
+@api_auth_required
 def find_video(id):
     try:
         con = sqlite3.connect(database_name)
@@ -49,6 +64,7 @@ def find_video(id):
         return {"failed": -1}
 
 @app.route("/backlog", methods = ['POST'])
+@api_auth_required
 def backlog_video():
     json = request.json
     if "id" in json and "title" in json and "time" in json:
@@ -64,14 +80,18 @@ def backlog_video():
             return {"failed": -1}
     return {"failed": -1}
 
+@app.route("/view-backlog", methods = ['GET'])
+def view_backlog_videos():
+    return render_template("backlog.html")
+
 @app.route("/backlog", methods = ['GET'])
+@api_auth_required
 def backlog_videos():
     try:
         con = sqlite3.connect(database_name)
         res = con.execute("SELECT * FROM backlogged_videos")
         videos = res.fetchall()
         con.close()
-        # make a good js / html ui with a table
         return videos
     except Exception as e:
         print(e)
@@ -79,6 +99,7 @@ def backlog_videos():
         return {"failed": -1}
 
 @app.route("/backlog/<string:id>", methods = ['DELETE'])
+@api_auth_required
 def backlog_video_delete(id):
     try:
         con = sqlite3.connect(database_name)
