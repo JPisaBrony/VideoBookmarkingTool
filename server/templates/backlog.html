@@ -5,10 +5,18 @@
 
     function create_button(id) {
         return function() {
-            fetch(url + "/backlog/" + id, {
+            var promise = fetch(url + "/backlog/" + id, {
                 method: "DELETE",
                 headers: {
                     "API-Key": decodeURIComponent(document.cookie)
+                }
+            });
+            promise.then(resp => {
+                return resp.json();
+            }).then(data => {
+                if(data["deleted"] == id) {
+                    var element = document.getElementById(id);
+                    element.remove();
                 }
             });
         }
@@ -25,12 +33,12 @@
             promise.then(resp => {
                 return resp.json();
             }).then(data => {
-                console.log(data);
                 var list = document.createElement("ul");
                 for(var i = 0; i < data.length; i++) {
                     var id = data[i][2];
                     var text = data[i][1];
                     var li = document.createElement("li");
+                    li.id = id;
                     var a = document.createElement("a");
                     a.target="_blank";
                     a.href = "https://www.youtube.com/watch?v=" + id;
