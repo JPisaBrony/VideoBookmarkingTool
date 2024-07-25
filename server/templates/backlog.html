@@ -1,7 +1,7 @@
 <!doctype html>
 <p>Backlog Page</p>
 <script>
-    var url = "http://localhost:8080/";
+    var url = window.location.href.split("view-backlog")[0];
 
     function delete_element_on_click(id) {
         return function() {
