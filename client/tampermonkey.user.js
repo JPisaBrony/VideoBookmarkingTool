@@ -1,34 +1,38 @@
 // ==UserScript==
 // @name         Video Bookmarking Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  bookmarking videos
 // @author       JP
 // @match        https://*.youtube.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        GM_xmlhttpRequest
 // @connect      *
+// @grant        window.close
 // @noframes
 // ==/UserScript==
 
 (function() {
     'use strict';
-    var endpoint = "";
+    var endpoint = "http://localhost:8080/";
+    var apiKey = "API_KEY";
     var mobile = false;
     var bookmarked = false;
     var videoID = null;
     var oldURL = "";
 
-    var createButton = (element) => {
-        var button = document.createElement('button');
-        button.id = 'jp_button';
-        button.innerText = 'bookmark';
+    var createDiv = (element) => {
+        var div = document.createElement('jp_div');
+        div.id = 'jp_div';
+        // bookmarked buton
+        var bookmark_button = document.createElement("button");
+        bookmark_button.innerText = 'bookmark';
         if(bookmarked) {
-            button.style = 'background-color: green; color: white; margin-left: 10px';
+            bookmark_button.style = 'background-color: green; color: white; margin-left: 10px';
         } else {
-            button.style = 'background-color: red; color: white; margin-left: 10px';
+            bookmark_button.style = 'background-color: red; color: white; margin-left: 10px';
         }
-        button.onclick = (e) => {
+        bookmark_button.onclick = (e) => {
             e.stopPropagation();
             let videoTitle = "title";
             if(mobile) {
@@ -43,17 +47,50 @@
                 GM_xmlhttpRequest({
                     method: "POST",
                     url: updateReq,
-                    headers: {"Content-Type": "application/json"},
+                    headers: {"Content-Type": "application/json", "API-Key": apiKey},
                     data: JSON.stringify({"id": videoID, "title": videoTitle}),
                     responseType: "json",
                     onload: function(resp) {
                         let json = resp.response;
-                        button.style = 'background-color: green; color: white; margin-left: 10px';
+                        bookmark_button.style = 'background-color: green; color: white; margin-left: 10px';
                     }
                 });
             }
         };
-        element.append(button);
+        // backlog button
+        var backlog_button = document.createElement("button");
+        backlog_button.innerText = 'backlog';
+        backlog_button.style = "margin-left: 10px";
+        backlog_button.onclick = (e) => {
+            e.stopPropagation();
+            let videoTitle = "title";
+            if(mobile) {
+                let yt = element.querySelectorAll("span");
+                videoTitle = yt[0].innerText;
+            } else {
+                let yt = element.querySelectorAll("yt-formatted-string");
+                videoTitle = yt[0].innerText;
+            }
+            let updateReq = endpoint + "backlog";
+            if(videoID != null) {
+                GM_xmlhttpRequest({
+                    method: "POST",
+                    url: updateReq,
+                    headers: {"Content-Type": "application/json", "API-Key": apiKey},
+                    data: JSON.stringify({"id": videoID, "title": videoTitle, "time": 0}),
+                    responseType: "json",
+                    onload: function(resp) {
+                        if(resp.status == 200) {
+                            window.close();
+                        }
+                    }
+                });
+            }
+        };
+        // add both buttons to the div and then to the page
+        div.append(bookmark_button);
+        div.append(backlog_button);
+        element.append(div);
     }
 
     var findTitleOnPage = () => {
@@ -62,7 +99,7 @@
             for(let i = 0; i < h2.length; i++) {
                 let element = h2[i];
                 if(element.classList.contains('slim-video-information-title') && element.classList.contains('slim-video-metadata-title-modern')) {
-                    createButton(element);
+                    createDiv(element);
                     break;
                 }
             }
@@ -71,7 +108,7 @@
             for(let i = 0; i < h1.length; i++) {
                 let element = h1[i];
                 if(element.classList.contains('style-scope') && element.classList.contains('ytd-watch-metadata')) {
-                    createButton(element);
+                    createDiv(element);
                     break;
                 }
             }
@@ -93,6 +130,7 @@
             GM_xmlhttpRequest({
                 method: "GET",
                 url: getReq,
+                headers: {"API-Key": apiKey},
                 responseType: "json",
                 onload: function(resp) {
                     let json = resp.response;
@@ -101,16 +139,16 @@
                             bookmarked = true;
                         }
                         findTitleOnPage();
-                        setTimeout(checkForButtonOnPage, 1000);
+                        setTimeout(checkForDivOnPage, 1000);
                     }
                 }
             });
         }
     }
 
-    var checkForButtonOnPage = () => {
-        let jpButton = document.getElementById('jp_button');
-        if(!jpButton) {
+    var checkForDivOnPage = () => {
+        let jpDiv = document.getElementById("jp_div");
+        if(!jpDiv) {
             getBookmarkedState();
         }
     }
@@ -119,11 +157,11 @@
         let url = window.location.href;
         if(url != oldURL) {
             oldURL = url;
-            let jpButton = document.getElementById('jp_button');
-            if(jpButton) {
-                jpButton.remove();
+            let jpDiv = document.getElementById('jp_div');
+            if(jpDiv) {
+                jpDiv.remove();
             }
-            checkForButtonOnPage();
+            checkForDivOnPage();
         }
     }
 
