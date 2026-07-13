@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Video Bookmarking Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  bookmarking videos
 // @author       JP
 // @match        https://*.youtube.com/*
@@ -99,6 +99,8 @@
             for(let i = 0; i < h2.length; i++) {
                 let element = h2[i];
                 if(element.classList.contains('slim-video-information-title') && element.classList.contains('slim-video-metadata-title-modern')) {
+                    let yt = element.querySelectorAll("span");
+                    yt[0].style = "display: block";
                     createDiv(element);
                     break;
                 }
